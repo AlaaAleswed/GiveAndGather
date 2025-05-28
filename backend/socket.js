@@ -45,6 +45,29 @@ module.exports = (io) => {
       }
     });
 
+    socket.on("messageDeleted", async ({ messageId, conversationId }) => {
+      try {
+        const conversation = await Conversation.findById(
+          conversationId
+        ).populate("users", "_id");
+        if (!conversation) return;
+
+        for (const user of conversation.users) {
+          const userSocket = users.get(String(user._id));
+          if (userSocket) {
+            io.to(userSocket).emit("messageDeleted", {
+              messageId,
+              conversationId,
+            });
+          }
+        }
+
+        console.log("🗑️ Message deletion broadcasted:", messageId);
+      } catch (err) {
+        console.error("❌ Error broadcasting messageDeleted:", err.message);
+      }
+    });
+
     // ✅ عند فصل الاتصال
     socket.on("disconnect", () => {
       console.log("❌ Socket disconnected:", socket.id);
@@ -57,4 +80,12 @@ module.exports = (io) => {
       }
     });
   });
+  // ✅ Inject io into all requests (اختياري)
+  const express = require("express");
+  const app = express();
+  app.use((req, res, next) => {
+    req.io = io;
+    next();
+  });
+
 };

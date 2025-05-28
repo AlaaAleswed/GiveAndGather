@@ -15,24 +15,24 @@ axios.defaults.withCredentials = true;
 const Home = () => {
   const lang = localStorage.getItem("language") || "en";
   const t = translations[lang];
-  const [mostInterested, setMostInterested] = useState([]);
+  // const [mostInterested, setMostInterested] = useState([]);
 
-  useEffect(() => {
-  fetch("/donations/most-interested")
-    .then((res) => res.json())
-    .then((data) => {
-      if (Array.isArray(data)) {
-        setMostInterested(data);
-      } else {
-        console.error("Returned data is not an array:", data);
-        setMostInterested([]);
-      }
-    })
-    .catch((err) => {
-      console.error(err);
-      setMostInterested([]);
-    });
-}, []);
+//   useEffect(() => {
+//   fetch("/donations/most-interested")
+//     .then((res) => res.json())
+//     .then((data) => {
+//       if (Array.isArray(data)) {
+//         setMostInterested(data);
+//       } else {
+//         console.error("Returned data is not an array:", data);
+//         setMostInterested([]);
+//       }
+//     })
+//     .catch((err) => {
+//       console.error(err);
+//       setMostInterested([]);
+//     });
+// }, []);
 
 
   return (
@@ -92,14 +92,7 @@ const Home = () => {
       </div>
         
       {/* most interested section */}
-      <section className="my-6">
-        <h2 className="text-2xl font-bold mb-4">🔥 Most Interested</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {mostInterested.map((donation) => (
-            <DonationCard key={donation._id} donation={donation} />
-          ))}
-        </div>
-      </section>
+      
 
       {/* Stats Section */}
       <div className="position-relative min-vh-100 w-100 d-flex align-items-center justify-content-center bg-white">

@@ -14,6 +14,10 @@ export const fetchConversations = () => api.get("/conversations");
 export const fetchMessages = (conversationId) =>
   api.get(`/messages/conversation/${conversationId}`);
 
+export const deleteMessage = async (id) => {
+  const res = await api.delete(`/messages/${id}`);
+  return res.data;
+};
 // ✅ إرسال رسالة نصية
 export const sendMessage = async (conversationId, content) => {
   return await api.post("/messages", {

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const express = require('express');
+const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
 require('dotenv').config();
@@ -48,7 +49,7 @@ app.use('/api/saved', savedRoutes);
 app.use('/api/block', blockRoutes);
 app.use('/api/conversations', conversationRoutes);
 // ✅ ملفات الصور
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.join(__dirname,'uploads')));
 
 app.use("/api/stats", require("./routes/stats"));
 

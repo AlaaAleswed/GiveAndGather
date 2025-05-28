@@ -42,7 +42,8 @@ const MessageSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Message',
     default: null
-  }
+  },
+  deleted: { type: Boolean, default: false }, 
 }, { timestamps: true });
 
 module.exports = mongoose.model('Message', MessageSchema);

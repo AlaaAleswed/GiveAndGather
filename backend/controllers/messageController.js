@@ -5,6 +5,9 @@ const Block = require("../models/Block");
 const path = require("path");
 const mongoose = require("mongoose");
 
+const axios = require("axios");
+const googleApiKey = process.env.GOOGLE_MAPS_API_KEY;
+
 exports.sendMessage = async (req, res) => {
   console.log("📥 Incoming message:", req.body);
 
@@ -29,8 +32,31 @@ exports.sendMessage = async (req, res) => {
       const ext = path.extname(req.file.originalname).toLowerCase();
       if ([".mp3", ".wav"].includes(ext)) type = "audio";
       else if ([".mp4", ".webm"].includes(ext)) type = "video";
-      else if ([".pdf", ".docx", ".xlsx"].includes(ext)) type = "file";
+      else if ([".pdf", ".docx", ".xlsx", ".zip", ".rar"].includes(ext))
+        type = "file";
       else type = "image";
+    }
+
+    if (type === "location" && location?.lat && location?.lng) {
+      if (location?.lat && location?.lng) {
+        try {
+          const geoRes = await axios.get(
+            `https://maps.googleapis.com/maps/api/geocode/json`,
+            {
+              params: {
+                latlng: `${location.lat},${location.lng}`,
+                key: process.env.GOOGLE_MAPS_API_KEY,
+              },
+            }
+          );
+          const placeName = geoRes.data.results?.[0]?.formatted_address;
+          if (placeName) {
+            content = `📍 ${placeName}`;
+          }
+        } catch (err) {
+          console.error("❌ Error fetching place name:", err.message);
+        }
+      }
     }
 
     const message = await Message.create({
@@ -50,10 +76,9 @@ exports.sendMessage = async (req, res) => {
     });
 
     // ✅ جلب الرسالة كاملة مع بيانات المرسل فقط
-    const fullMessage = await Message.findById(message._id).populate(
-      "sender",
-      "name profileImage"
-    ).populate("receiver", "name profileImage");
+    const fullMessage = await Message.findById(message._id)
+      .populate("sender", "name profileImage")
+      .populate("receiver", "name profileImage");
 
     res.status(201).json(fullMessage);
   } catch (err) {
@@ -199,18 +224,26 @@ exports.getUserConversations = async (req, res) => {
  */
 exports.deleteMessage = async (req, res) => {
   const { id } = req.params;
-
   try {
     const message = await Message.findById(id);
     if (!message) return res.status(404).json({ message: "Message not found" });
 
-    // ✅ استخدام toString مباشرةً
     if (message.sender.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Unauthorized" });
     }
-
-    await message.deleteOne();
-    res.json({ message: "Message deleted" });
+    message.deleted = true;
+    message.content = "";
+    message.attachment = null;
+    await message.save();
+    // ✅ إرسال إشعار عبر WebSocket
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("messageDeleted", {
+        messageId: message._id.toString(),
+        conversationId: message.conversationId.toString(),
+      });
+    }
+    res.json({ message: "Message marked as deleted" });
   } catch (err) {
     console.error("❌ Error deleting message:", err.message);
     res.status(500).json({ message: "Server error" });
@@ -239,6 +272,25 @@ exports.editMessage = async (req, res) => {
   } catch (err) {
     console.error("❌ Error editing message:", err.message);
     res.status(500).json({ message: "Server error" });
+  }
+};
+
+exports.editMessage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { content } = req.body;
+
+    const message = await Message.findByIdAndUpdate(
+      id,
+      { content, edited: true },
+      { new: true }
+    ).populate("sender");
+
+    if (!message) return res.status(404).json({ error: "Message not found" });
+
+    res.json(message);
+  } catch (err) {
+    res.status(500).json({ error: "Edit failed" });
   }
 };
 
