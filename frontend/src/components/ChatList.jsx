@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const ChatList = ({
   onSelectConversation,
@@ -7,20 +8,14 @@ const ChatList = ({
   currentUserId,
 }) => {
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    console.log("🔄 Conversations updated:", conversations);
-  }, [conversations]);
-
-  // ✨ استخراج محادثة واحدة لكل مستخدم
+  // ✨ استخراج محادثة واحدة لكل شريك
   const uniquePartners = new Map();
   conversations
-    .filter((conv) => {
-      const partner = conv.users?.find(
-        (u) => String(u._id) !== String(currentUserId)
-      );
-      return partner;
-    })
+    .filter((conv) =>
+      conv.users?.some((u) => String(u._id) !== String(currentUserId))
+    )
     .forEach((conv) => {
       const partner = conv.users.find(
         (u) => String(u._id) !== String(currentUserId)
@@ -30,61 +25,74 @@ const ChatList = ({
       }
     });
 
-  // ✅ تصفية نتائج المحادثات حسب الاسم
   const filteredConversations = Array.from(uniquePartners.values()).filter(
-    ({ partner }) =>
-      partner.name.toLowerCase().includes(search.toLowerCase())
+    ({ partner }) => partner.name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
     <div
-      className="w-100 border-end bg-white p-3 shadow-sm"
-      style={{ maxWidth: 300 }}
+      className="bg-white border-end shadow-sm d-flex flex-column"
+      style={{ maxWidth: 320, width: "100%", height: "100%" }}
     >
-      <h5 className="fw-bold mb-3">Messages</h5>
+      <div className="p-3 border-bottom">
+        <h5 className="fw-bold mb-2">Messages</h5>
+        <input
+          className="form-control"
+          placeholder="Search users..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
 
-      {/* 🔍 Search box */}
-      <input
-        className="form-control mb-3"
-        placeholder="Search users..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
-
-      {/* 💬 Filtered Conversations */}
-      <div>
+      <div className="flex-grow-1 overflow-auto p-2">
         {filteredConversations.length > 0 ? (
           filteredConversations.map(({ conv, partner }) => {
             const isSelected = String(partner._id) === String(selectedId);
             const messageText =
               typeof conv.lastMessage === "string"
                 ? conv.lastMessage
-                : conv.lastMessage?.content;
+                : conv.lastMessage?.deleted
+                ? "This message was deleted"
+                : conv.lastMessage?.content || "No messages yet";
 
             return (
               <div
                 key={conv._id}
                 onClick={() => onSelectConversation(conv, partner)}
-                className={`d-flex align-items-center p-2 rounded mb-2 ${
-                  isSelected ? "bg-primary text-white" : "hover-bg"
+                className={`d-flex align-items-center gap-3 p-2 rounded mb-1 ${
+                  isSelected ? "bg-light border" : "hover-bg"
                 }`}
                 style={{ cursor: "pointer" }}
               >
                 <img
-                  src={partner.profileImage || "/default-user.png"}
+                  src={
+                    partner.profileImage
+                      ? `http://localhost:5050/uploads/${partner.profileImage}`
+                      : "/default-user.png"
+                  }
                   alt="avatar"
-                  className="rounded-circle me-2"
-                  style={{ width: 35, height: 35, objectFit: "cover" }}
+                  className="rounded-circle border"
+                  style={{
+                    width: 45,
+                    height: 45,
+                    objectFit: "cover",
+                    flexShrink: 0,
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/profile/${partner._id}`);
+                  }}
                 />
-                <div>
-                  <strong>{partner.name}</strong>
+                <div className="flex-grow-1 overflow-hidden">
+                  <div className="fw-bold text-truncate">{partner.name}</div>
                   <div
-                    className={`small ${
-                      isSelected ? "text-white" : "text-muted"
+                    className={`small text-truncate ${
+                      isSelected ? "text-dark" : "text-muted"
                     }`}
+                    style={{ maxWidth: 200 }}
                   >
-                    {messageText?.length > 30
-                      ? messageText.substring(0, 30) + "..."
+                    {messageText.length > 35
+                      ? messageText.slice(0, 35) + "..."
                       : messageText}
                   </div>
                 </div>
@@ -92,7 +100,9 @@ const ChatList = ({
             );
           })
         ) : (
-          <div className="text-muted text-center">No results match your search.</div>
+          <div className="text-center text-muted mt-4">
+            No results match your search.
+          </div>
         )}
       </div>
     </div>

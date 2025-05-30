@@ -1,11 +1,29 @@
-// models/UserActivity.js
 const mongoose = require('mongoose');
 
-const userActivitySchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  donation: { type: mongoose.Schema.Types.ObjectId, ref: 'Donation' },
-  action: { type: String, enum: ['view', 'contact'], default: 'view' },
-  createdAt: { type: Date, default: Date.now }
+const UserActivitySchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  kind: {
+    type: String,
+    required: true,
+    enum: ['clothes', 'electronics', 'furniture', 'food', 'nursing', 'other']
+  },
+  location: {
+    type: String,
+    required: true
+  },
+  action: {
+    type: String,
+    enum: ['view', 'save', 'contact'],
+    default: 'view'
+  },
+  date: {
+    type: Date,
+    default: Date.now
+  }
 });
 
-module.exports = mongoose.model('UserActivity', userActivitySchema);
+module.exports = mongoose.model('UserActivity', UserActivitySchema);

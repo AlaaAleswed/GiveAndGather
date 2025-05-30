@@ -66,6 +66,10 @@ isVisible: {
   default: true,
 },
 
+interactions: {
+  type: Number,
+  default: 0,
+}
 
 }, { timestamps: true });
 

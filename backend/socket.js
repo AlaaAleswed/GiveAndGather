@@ -18,6 +18,7 @@ module.exports = (io) => {
     socket.on("sendMessage", async ({ senderId, receiverId, message }) => {
       try {
         const receiverSocket = users.get(String(receiverId));
+        const senderSocket = users.get(String(senderId)); // ✅ أضف هذا
 
         // ✅ تحميل الرسالة من قاعدة البيانات مع بيانات المرسل والمستقبل
         const fullMessage = await Message.findById(message._id)
@@ -40,8 +41,37 @@ module.exports = (io) => {
         } else {
           console.warn("⚠️ Receiver is not connected to socket:", receiverId);
         }
+        if (senderSocket) {
+      io.to(senderSocket).emit("newMessage", {
+        ...fullMessage.toObject(),
+        conversationId: message.conversationId,
+      });
+    }
       } catch (err) {
         console.error("❌ Socket sendMessage error:", err.message);
+      }
+    });
+
+    socket.on("messageDeleted", async ({ messageId, conversationId }) => {
+      try {
+        const conversation = await Conversation.findById(
+          conversationId
+        ).populate("users", "_id");
+        if (!conversation) return;
+
+        for (const user of conversation.users) {
+          const userSocket = users.get(String(user._id));
+          if (userSocket) {
+            io.to(userSocket).emit("messageDeleted", {
+              messageId,
+              conversationId,
+            });
+          }
+        }
+
+        console.log("🗑️ Message deletion broadcasted:", messageId);
+      } catch (err) {
+        console.error("❌ Error broadcasting messageDeleted:", err.message);
       }
     });
 
@@ -57,4 +87,12 @@ module.exports = (io) => {
       }
     });
   });
+  // ✅ Inject io into all requests (اختياري)
+  const express = require("express");
+  const app = express();
+  app.use((req, res, next) => {
+    req.io = io;
+    next();
+  });
+
 };

@@ -39,23 +39,59 @@ exports.createDonation = async (req, res) => {
 };
 
 // Get All Donations (with optional filters: kind & location)
+// exports.getAllDonations = async (req, res) => {
+//   try {
+//     const { kind, location } = req.query;
+//     const filter = {};
+//     if (kind) filter.kind = kind.toLowerCase();
+//     if (location) filter.location = location.toLowerCase();
+
+//     const donations = await Donation.find(filter).populate("user", "name");
+//     res.json(donations);
+//   } catch (err) {
+//     res
+//       .status(500)
+//       .json({ message: "Failed to fetch donations: " + err.message });
+//   }
+// };
+
+
 exports.getAllDonations = async (req, res) => {
   try {
-    const { kind, location } = req.query;
+    const allDonations = await Donation.find({ isVisible: true }).populate("user");
 
-    // Build dynamic filter
-    const filter = {};
-    if (kind) filter.kind = kind.toLowerCase();
-    if (location) filter.location = location.toLowerCase();
+    if (!req.user) return res.json(allDonations);
 
-    const donations = await Donation.find(filter).populate("user", "name");
-    res.json(donations);
+    const activities = await UserActivity.find({ user: req.user._id });
+
+    const kindCount = {};
+    const locationCount = {};
+    activities.forEach((act) => {
+      kindCount[act.kind] = (kindCount[act.kind] || 0) + 1;
+      locationCount[act.location] = (locationCount[act.location] || 0) + 1;
+    });
+
+    const topKind = Object.entries(kindCount).sort((a, b) => b[1] - a[1])[0]?.[0];
+    const topLocation = Object.entries(locationCount).sort((a, b) => b[1] - a[1])[0]?.[0];
+
+    const ranked = allDonations
+      .map((donation) => {
+        const kindScore = donation.kind === topKind ? 1 : 0;
+        const locationScore = donation.location === topLocation ? 1 : 0;
+        const totalScore = kindScore * 2 + locationScore; // الوزن ممكن تعديله
+        return { donation, totalScore };
+      })
+      .sort((a, b) => b.totalScore - a.totalScore || b.donation.interactions - a.donation.interactions)
+      .map((item) => item.donation);
+
+    res.json(ranked);
   } catch (err) {
-    res
-      .status(500)
-      .json({ message: "Failed to fetch donations: " + err.message });
+    console.error("❌ Error in getAllDonations:", err.message);
+    res.status(500).json({ message: "Server error while fetching donations" });
   }
 };
+
+
 
 // Get Donations By User
 exports.getDonationsByUser = async (req, res) => {
@@ -87,11 +123,18 @@ exports.getDonationById = async (req, res) => {
     if (!donation) {
       return res.status(404).json({ message: "Donation not found" });
     }
-    await UserActivity.create({
-      user: req.user._id, // تأكد أنك تستخدم توكن يحتوي user
-      donation: donation._id,
-      action: "view",
-    });
+    try {
+      if (req.user && donation) {
+        await UserActivity.create({
+          user: req.user._id,
+          kind: donation.kind,
+          location: donation.location,
+          action: "view",
+        });
+      }
+    } catch (err) {
+      console.error("❌ Failed to record user activity:", err.message);
+    }
     res.json(donation);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch donation" });
@@ -217,72 +260,80 @@ exports.getDonationsByUserId = async (req, res) => {
   }
 };
 
-// const Donation = require('../models/Donation');
-
-// const mongoose = require('mongoose');
-
-// exports.createDonation = async (req, res) => {
-//     try {
-
-//         console.log("User ID:", req.user && req.user._id);
-
-//         console.log("Body:", req.body);
-//         console.log("Files:", req.files);
-
-//       if (!req.files || req.files.length < 2) {
-//         return res.status(400).json({ message: 'At least 2 images are required' });
-//       }
-
-//       const images = req.files.map(file => file.filename);
-
-//       const donation = await Donation.create({
-//         ...req.body,
-//         user: req.user._id,
-//         images
-//       });
-
-//       res.status(201).json(donation);
-//     } catch (err) {
-//       console.error('Create Donation Error:', err.message);
-//       res.status(500).json({ message: err.message });
-//     }
-//   };
-
-//   exports.getAllDonations = async (req, res) => {
-//     try {
-//       const donations = await Donation.find().populate('user', 'name');
-//       res.json(donations);
-//     } catch (err) {
-//       res.status(500).json({ message: err.message });
-//     }
-//   };
-
-// exports.getDonationsByUser = async (req, res) => {
+// exports.addInteraction = async (req, res) => {
 //   try {
-//     const userId = new mongoose.Types.ObjectId(req.params.userId);
-//     const donations = await Donation.find({ user: userId }).populate('user', 'name');
-//     res.json(donations);
+//     await Donation.findByIdAndUpdate(req.params.id, {
+//       $inc: { interactions: 1 },
+//     });
+//     res.sendStatus(200);
 //   } catch (err) {
-//     res.status(500).json({ message: 'Invalid user ID or server error' });
+//     res.status(500).json({ message: "Failed to record interaction" });
 //   }
 // };
 
-// exports.updateDonation = async (req, res) => {
-//     const donation = await Donation.findByIdAndUpdate(req.params.id, req.body, { new: true });
-//     res.json(donation);
-// };
+exports.addInteraction = async (req, res) => {
+  const donationId = req.params.id;
+  const { action } = req.body;
 
-// exports.deleteDonation = async (req, res) => {
-//     await Donation.findByIdAndDelete(req.params.id);
-//     res.json({ message: 'Deleted' });
-// };
+  try {
+    const donation = await Donation.findById(donationId);
+    if (!donation) return res.status(404).json({ message: "Donation not found" });
 
-// exports.getDonationById = async (req, res) => {
-//     try {
-//       const donation = await Donation.findById(req.params.id).populate('user', 'name');
-//       if (!donation) return res.status(404).json({ message: 'Donation not found' });
-//       res.json(donation);
-//     } catch (err) {
-//       res.status(500).json({ message: err.message });
-//     }
-//   };
+    await UserActivity.create({
+      user: req.user._id,
+      kind: donation.kind,
+      location: donation.location,
+      action: action || "view", // الافتراضي: عرض
+    });
+
+    // اختياري: زيادة العدّاد
+    await Donation.findByIdAndUpdate(donationId, { $inc: { interactions: 1 } });
+
+    res.status(200).json({ message: "Interaction recorded" });
+  } catch (err) {
+    console.error("❌ Error in addInteraction:", err.message);
+    res.status(500).json({ message: "Failed to record interaction" });
+  }
+};
+
+
+exports.getMostInterested = async (req, res) => {
+  console.log("🚀 Called GET /most-interested");
+  try {
+    const top = await Donation.aggregate([
+      { $match: { interactions: { $gt: 0 } } },
+      { $sort: { interactions: -1 } },
+      { $limit: 6 },
+      {
+        $lookup: {
+          from: "users",
+          localField: "user",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" },
+      {
+        $project: {
+          title: 1,
+          description: 1,
+          kind: 1,
+          location: 1,
+          images: 1,
+          condition: 1,
+          createdAt: 1,
+          interactions: 1,
+          user: {
+            _id: "$user._id",
+            name: "$user.name",
+          },
+        },
+      },
+    ]);
+
+    res.json(top);
+  } catch (err) {
+    console.error("❌ Error in getMostInterested:", err);
+    res.status(500).json({ message: "Server error in getMostInterested" });
+  }
+};

@@ -4,6 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { MessageSquare, MapPin, Calendar, Tag, Info, User } from "lucide-react";
 import axios from "axios";
 import { getOrCreateConversation } from "../api";
+import { useUser } from "../context/UserContext";
 
 axios.defaults.baseURL = "http://localhost:5050/api";
 axios.defaults.withCredentials = true;
@@ -33,6 +34,7 @@ const DonationDetails = () => {
   const [related, setRelated] = useState([]);
   const [imageIndex, setImageIndex] = useState(0);
   const [hovered, setHovered] = useState(false);
+  const { user: currentUser } = useUser();
 
   useEffect(() => {
     const fetchDonation = async () => {
@@ -66,6 +68,14 @@ const DonationDetails = () => {
     }
     return () => clearInterval(interval);
   }, [hovered, donation]);
+
+  useEffect(() => {
+    if (donation?._id) {
+      axios.put(`/donations/${donation._id}/interact`).catch((err) => {
+        console.error("❌ Failed to track interaction:", err);
+      });
+    }
+  }, [donation?._id]);
   if (!donation) return <p className="text-center mt-5">Loading...</p>;
   const images = donation.images?.length
     ? donation.images
@@ -165,12 +175,11 @@ const DonationDetails = () => {
             <span>{donation.location}</span>
           </div>
 
-          {donation.expirationDate && (
+          {donation.expireDate && (
             <div className="mb-3 d-flex align-items-center text-muted">
               <Calendar size={18} className="me-2" />
               <span>
-                Expires on:{" "}
-                {new Date(donation.expirationDate).toLocaleDateString()}
+                Expires on: {new Date(donation.expireDate).toLocaleDateString()}
               </span>
             </div>
           )}
@@ -189,12 +198,16 @@ const DonationDetails = () => {
             {donation.description}
           </p>
 
-          {(donation.user?._id || donation.ownerEmail) && (
+          {donation.user?._id !== currentUser?._id && (
             <button
               className="btn btn-primary rounded-pill mt-3 px-4"
               onClick={async () => {
                 try {
-                  await getOrCreateConversation(donation.user._id);
+                  await axios.put(`/donations/${donation._id}/interact`);
+                  await getOrCreateConversation(
+                    donation.user._id,
+                    donation._id
+                  );
                   navigate(`/chat/${donation.user._id}`);
                 } catch (err) {
                   console.error("❌ Failed to start chat:", err);

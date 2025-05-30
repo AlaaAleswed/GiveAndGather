@@ -348,6 +348,7 @@ const Profile = () => {
                       key={donation._id}
                       className="list-group-item list-group-item-action d-flex align-items-center gap-3 shadow-sm rounded mb-3"
                       style={{ cursor: "pointer" }}
+                      onClick={() => navigate(`/donations/${donation._id}`)}
                     >
                       <img
                         src={
@@ -417,7 +418,10 @@ const Profile = () => {
                           <div
                             className="text-danger px-3 py-1 hover-bg"
                             style={{ cursor: "pointer", fontSize: "14px" }}
-                            onClick={() => handleDeleteDonation(donation)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteDonation(donation);
+                            }}
                           >
                             Delete
                           </div>

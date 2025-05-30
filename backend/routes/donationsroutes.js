@@ -14,6 +14,8 @@ const {
   updateDonationStatus ,
   getSimilarDonations,
   getDonationsByUserId,
+  addInteraction,
+  getMostInterested,
 } = require('../controllers/donationController');
 
 console.log("📡 donationsroutes.js LOADED");
@@ -24,6 +26,7 @@ router.get('/similar', getSimilarDonations);
 const upload = require('../middlewares/upload');
 const { protect, adminOnly } = require('../middlewares/auth');
 
+router.get("/most-interested", getMostInterested);
 
 router.patch('/:id/status', protect, updateDonationStatus);
 
@@ -38,6 +41,7 @@ router.get('/', getAllDonations);
 router.get('/user', protect, getDonationsByUser);
 
 router.get('/user/:userId', protect, getDonationsByUser);
+
 
 // Get single donation by ID
 router.get('/:id', getDonationById);
@@ -55,43 +59,9 @@ router.delete('/admin/:id', protect, adminOnly, deleteDonation);
 router.get("/byUser/:id", getDonationsByUserId); 
 
 // GET /donations/most-interested
-router.get('/most-interested', async (req, res) => {
-  try {
-    const result = await Donation.aggregate([
-      {
-        $lookup: {
-          from: 'UserActivity', // تأكد أن اسم المجموعة مطابق لاسمها في MongoDB
-          localField: '_id',
-          foreignField: 'donation',
-          as: 'views'
-        }
-      },
-      {
-        $addFields: {
-          viewCount: { $size: '$views' }
-        }
-      },
-      { $sort: { viewCount: -1 } },
-      { $limit: 8 },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'user',
-          foreignField: '_id',
-          as: 'user'
-        }
-      },
-      { $unwind: '$user' }
-    ]);
 
-    res.json(result);
-  } catch (error) {
-    console.error("🔥 ERROR in /most-interested:", error); // اطبع الخطأ كامل
-    res.status(500).json({
-      message: error.message,
-      stack: error.stack
-    });
-  }
-});
+router.put("/:id/interact",protect, addInteraction);
+
+
 
 module.exports = router;
