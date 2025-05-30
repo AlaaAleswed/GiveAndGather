@@ -1,0 +1,108 @@
+/* CoverflowSlider.css - Final Polished Design with Text Styling */
+
+@import url('https://fonts.googleapis.com/css2?family=Cairo&family=Lora&family=Playfair+Display:wght@700&display=swap');
+
+.coverflow-wrapper {
+  margin-top: 0;
+  padding-top: 40px;
+  background: linear-gradient(to bottom, #fff7ed, #fff6e0, #fff9f0);
+}
+
+.swiper-container {
+  width: 100%;
+  max-width: 1400px;
+  height: auto;
+  padding: 100px 0 120px;
+  margin: auto;
+  transition: background 0.5s ease;
+}
+
+.swiper-slide {
+  background: url('./assets/about-bg.jpg') no-repeat center center / cover;
+  background-color: rgba(255, 255, 255, 0.4); /* شفافية خفيفة */
+  background-blend-mode: lighten;
+  border-radius: 40px;
+  padding: 60px 50px;
+  width: 850px;
+  min-height: 600px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: transform 0.8s ease, box-shadow 0.8s ease;
+  position: relative;
+}
+
+.swiper-slide:hover {
+  transform: scale(1.02);
+  box-shadow: 0 35px 80px rgba(0, 0, 0, 0.15);
+}
+
+/* ===== TEXT STYLING ===== */
+
+.text-slide h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.5rem;
+  color: rgb(0, 0, 0);
+  margin-bottom: 25px;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+.text-slide p {
+  font-family: 'Cairo', sans-serif;
+  font-size: 1.3rem;
+  color: #228b40;
+  line-height: 2.2;
+  margin: 10px 0;
+  text-align: center;
+}
+
+.text-slide p:nth-child(even) {
+  font-weight: bold;
+  color: #0a4c29; /* لون بارز مناسب للخلفية */
+  font-size: 1.4rem;
+}
+
+/* Section divider for smooth transition */
+.section-transition {
+  height: 80px;
+  background: linear-gradient(to bottom, #fef4e8, #fff9f0);
+  border-top-left-radius: 60px;
+  border-top-right-radius: 60px;
+  margin-top: -20px;
+}
+
+.about-slider-fade {
+  background-attachment: fixed;
+}
+
+/* Responsive Styles */
+@media (max-width: 1024px) {
+  .swiper-slide {
+    width: 90%;
+    padding: 40px 30px;
+    min-height: 550px;
+  }
+
+  .text-slide h3 {
+    font-size: 2rem;
+  }
+
+  .text-slide p {
+    font-size: 1.1rem;
+  }
+
+  .text-slide p:nth-child(even) {
+    font-size: 1.3rem;
+  }
+}
+
+
+
+.english-text {
+  font-weight: 900;
+  font-size: 1.25rem;
+  direction: ltr;
+  font-family: 'Open Sans', sans-serif;
+}

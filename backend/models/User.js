@@ -38,7 +38,7 @@ const UserSchema = new mongoose.Schema({
     default: ''
   },
 
- 
+ showPhone: { type: Boolean, default: true },
 
   phone: {
     type: String,

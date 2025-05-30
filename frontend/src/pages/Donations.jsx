@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Search, MapPin, Filter } from "lucide-react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom"; // ✅ تم إضافة useLocation
 import DonationCard from "../components/DonationCard";
 import axios from "axios";
+import AOS from "aos";
+import "aos/dist/aos.css";
 
 const categories = [
   { id: "all", label: "All" },
@@ -13,11 +15,13 @@ const categories = [
   { id: "food", label: "Food" },
   { id: "other", label: "Other" },
 ];
+
 axios.defaults.baseURL = "http://localhost:5050/api";
 axios.defaults.withCredentials = true;
 
 const Donations = () => {
   const navigate = useNavigate();
+  const locationHook = useLocation(); // ✅ جديد
   const [selectedkind, setSelectedkind] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [location, setLocation] = useState("");
@@ -25,19 +29,46 @@ const Donations = () => {
   const [selectedId, setSelectedId] = useState(null);
   const [donations, setDonations] = useState([]);
 
+  const observerTarget = useRef(null);
+
+  useEffect(() => {
+    AOS.init({
+      duration: 1000,
+      once: true,
+      easing: "ease-in-out",
+    });
+  }, []);
+
   useEffect(() => {
     const fetchDonations = async () => {
-      try {
-        const res = await axios.get("/donations", { withCredentials: true });
-        const valid = res.data.filter((d) => d.isValid !== false); // ✅ نفس فلتر كودك
-        setDonations(valid);
-      } catch (err) {
-        console.error("❌ Failed to fetch donations:", err.message);
-      }
+      const res = await axios.get("/donations");
+     const valid = res.data.filter((d) => d.isValid === undefined || d.isValid === true || d.isValid === "true");
+
+      setDonations(valid);
     };
 
-    fetchDonations();
-  }, []);
+    fetchDonations(); // ✅ كل مرة تتغير فيها الصفحة (بعد الرجوع مثلاً)
+  }, [locationHook]); // ✅ هذا هو المفتاح
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          visibleCount < filteredDonations.length
+        ) {
+          setVisibleCount((prev) => prev + 3);
+        }
+      },
+      { threshold: 1.0 }
+    );
+
+    if (observerTarget.current) observer.observe(observerTarget.current);
+    return () => {
+      if (observerTarget.current) observer.unobserve(observerTarget.current);
+    };
+  }, [donations, visibleCount]);
 
   const filteredDonations = donations.filter((donation) => {
     const matchesKind =
@@ -53,33 +84,6 @@ const Donations = () => {
 
     return matchesKind && matchesSearch && matchesLocation;
   });
-
-  const handleLoadMore = () => {
-    setVisibleCount((prev) => prev + 6);
-  };
-  const hasMore = visibleCount < filteredDonations.length;
-  const formatTimeAgo = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const seconds = Math.floor((now - date) / 1000);
-    const intervals = [
-      { label: "year", seconds: 31536000 },
-      { label: "month", seconds: 2592000 },
-      { label: "week", seconds: 604800 },
-      { label: "day", seconds: 86400 },
-      { label: "hour", seconds: 3600 },
-      { label: "minute", seconds: 60 },
-      { label: "second", seconds: 1 },
-    ];
-    for (let i = 0; i < intervals.length; i++) {
-      const interval = intervals[i];
-      const count = Math.floor(seconds / interval.seconds);
-      if (count >= 1) {
-        return `${count} ${interval.label}${count !== 1 ? "s" : ""} ago`;
-      }
-    }
-    return "Just now";
-  };
 
   return (
     <div className="container-fluid py-4">
@@ -98,6 +102,7 @@ const Donations = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
+
           <div className="col-md-6 position-relative p-2">
             <MapPin
               className="position-absolute top-50 translate-middle-y ms-2 text-muted"
@@ -123,6 +128,7 @@ const Donations = () => {
               <option value="madaba">Madaba</option>
             </select>
           </div>
+
           <div className="col-12 d-flex align-items-center flex-wrap gap-2 mt-2">
             <Filter className="text-muted" size={20} />
             {categories.map((kind) => (
@@ -146,8 +152,13 @@ const Donations = () => {
       </div>
 
       <div className="row g-4">
-        {filteredDonations.slice(0, visibleCount).map((donation) => (
-          <div key={donation._id} className="col-md-6 col-lg-4">
+        {filteredDonations.slice(0, visibleCount).map((donation, index) => (
+          <div
+            key={donation._id}
+            className="col-md-6 col-lg-4"
+            data-aos="fade-up"
+            data-aos-delay={index * 100}
+          >
             <DonationCard
               donation={donation}
               onSelect={setSelectedId}
@@ -155,15 +166,8 @@ const Donations = () => {
             />
           </div>
         ))}
+        <div ref={observerTarget}></div>
       </div>
-
-      {hasMore && (
-        <div className="text-center mt-4">
-          <button onClick={handleLoadMore} className="btn btn-primary">
-            Load More
-          </button>
-        </div>
-      )}
     </div>
   );
 };

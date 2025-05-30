@@ -3,12 +3,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import ChatList from "../components/ChatList";
 import ChatBox from "../components/ChatBox";
 import { fetchConversations, getOrCreateConversation } from "../api";
-import { useUser } from "../context/UserContext";
+import { useUserContext } from "../context/UserContext";
 import socket from "../sockets/socket";
 
 const Chat = () => {
   const { id } = useParams();
-  const { user: currentUser } = useUser();
+  const { user: currentUser }  = useUserContext();
   const navigate = useNavigate();
 
   const [conversations, setConversations] = useState([]);

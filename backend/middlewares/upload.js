@@ -58,6 +58,7 @@ const allowedExtensions = [
 
 const fileFilter = (req, file, cb) => {
   const ext = path.extname(file.originalname).toLowerCase();
+   console.log("🧪 FILE TYPE:", ext); // ✅ أ
   if (allowedExtensions.includes(ext)) {
     cb(null, true);
   } else {

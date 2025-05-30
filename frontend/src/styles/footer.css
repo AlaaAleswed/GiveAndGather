@@ -1,0 +1,35 @@
+/* ✅ حاوية الصفحة */
+.page-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main,
+.main-content {
+  flex: 1;
+}
+
+.footer-wrapper {
+  width: 100%;
+  background: #f8f8f8;
+  text-align: center;
+  padding: 10px 0;
+  font-size: 14px;
+  color: #555;
+  border-top: 1px solid #ddd;
+  margin-top: auto;
+}
+
+.footer-content {
+  margin: 0 auto;
+  max-width: 1200px;
+}
+
+/* ✅ Responsive */
+@media (max-width: 768px) {
+  .footer-wrapper {
+    font-size: 13px;
+    padding: 6px 0;
+  }
+}

@@ -1,14 +1,14 @@
-// src/pages/DonationDetails.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { MessageSquare, MapPin, Calendar, Tag, Info, User } from "lucide-react";
 import axios from "axios";
 import { getOrCreateConversation } from "../api";
+import DonationCard from "../components/DonationCard";
+import { useUserContext } from "../context/UserContext"; // مهم لاستخدام بيانات المستخدم
 
 axios.defaults.baseURL = "http://localhost:5050/api";
 axios.defaults.withCredentials = true;
 
-// دالة تنسيق الوقت
 const formatTimeAgo = (createdAt) => {
   if (!createdAt) return "";
   const now = new Date();
@@ -23,12 +23,13 @@ const formatTimeAgo = (createdAt) => {
   if (diff < hour) return `${Math.floor(diff / minute)} minute(s) ago`;
   if (diff < day) return `${Math.floor(diff / hour)} hour(s) ago`;
   if (diff < week) return `${Math.floor(diff / day)} day(s) ago`;
-  return created.toLocaleDateString("en-GB"); // e.g. 05/03/2025
+  return created.toLocaleDateString("en-GB");
 };
 
 const DonationDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useUserContext(); // جلب المستخدم الحالي
   const [donation, setDonation] = useState(null);
   const [related, setRelated] = useState([]);
   const [imageIndex, setImageIndex] = useState(0);
@@ -37,14 +38,10 @@ const DonationDetails = () => {
   useEffect(() => {
     const fetchDonation = async () => {
       try {
-        const res = await axios.get(`/donations/${id}`, {
-          withCredentials: true,
-        });
+        const res = await axios.get(`/donations/${id}`);
         setDonation(res.data);
-        // fetch similar donations
-        const all = await axios.get("/donations", {
-          withCredentials: true,
-        });
+
+        const all = await axios.get("/donations");
         const others = all.data.filter(
           (d) => d._id !== id && d.kind === res.data.kind
         );
@@ -66,132 +63,99 @@ const DonationDetails = () => {
     }
     return () => clearInterval(interval);
   }, [hovered, donation]);
+
   if (!donation) return <p className="text-center mt-5">Loading...</p>;
+
   const images = donation.images?.length
     ? donation.images
     : ["https://via.placeholder.com/600x300?text=No+Image"];
 
+  const isOwner = user && user._id === donation.user?._id;
+
   return (
     <div className="container py-5">
-      <div className="card shadow border-0 overflow-hidden">
-        <div
-          className="position-relative bg-dark"
-          style={{ height: "350px", overflow: "hidden" }}
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => {
-            setHovered(false);
-            setImageIndex(0);
-          }}
-        >
-          {images.map((img, idx) => (
-            <img
-              key={idx}
-              src={`http://localhost:5050/uploads/${img}`}
-              alt={`slide-${idx}`}
-              className="w-100 position-absolute top-0 start-0"
-              style={{
-                height: "350px",
-                objectFit: "cover",
-                opacity: imageIndex === idx ? 1 : 0,
-                transition: "opacity 1s ease-in-out",
-                zIndex: imageIndex === idx ? 2 : 1,
-              }}
-            />
-          ))}
-
-          {/* زر ← السابق */}
-          {images.length > 1 && (
-            <button
-              className="btn btn-light position-absolute top-50 start-0 translate-middle-y"
-              style={{ zIndex: 3 }}
-              onClick={(e) => {
-                e.stopPropagation();
-                setImageIndex((prev) =>
-                  prev === 0 ? images.length - 1 : prev - 1
-                );
-              }}
-            >
-              ‹
-            </button>
-          )}
-          {/* زر → التالي */}
-          {images.length > 1 && (
-            <button
-              className="btn btn-light position-absolute top-50 end-0 translate-middle-y"
-              style={{ zIndex: 3 }}
-              onClick={(e) => {
-                e.stopPropagation();
-                setImageIndex((prev) =>
-                  prev === images.length - 1 ? 0 : prev + 1
-                );
-              }}
-            >
-              ›
-            </button>
-          )}
+      <div className="row g-4 align-items-start">
+        {/* Image */}
+        <div className="col-md-6">
+          <div
+            className="position-relative bg-dark rounded overflow-hidden"
+            style={{ height: "400px" }}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => {
+              setHovered(false);
+              setImageIndex(0);
+            }}
+          >
+            {images.map((img, idx) => (
+              <img
+                key={idx}
+                src={`http://localhost:5050/uploads/${img}`}
+                alt={`slide-${idx}`}
+                className="w-100 position-absolute top-0 start-0"
+                style={{
+                  height: "400px",
+                  objectFit: "cover",
+                  opacity: imageIndex === idx ? 1 : 0,
+                  transition: "opacity 1s ease-in-out",
+                  zIndex: imageIndex === idx ? 2 : 1,
+                }}
+              />
+            ))}
+          </div>
         </div>
 
-        {donation.user?.name && (
-          <div className="mb-3 d-flex align-items-center text-muted pt-2">
-            <User size={18} className="me-2" />
-            <span>
-              Donor:{" "}
+        {/* Info */}
+        <div className="col-md-6">
+          <h2 className="fw-bold mb-3" style={{ fontSize: "2rem", color: "#6225e6" }}>
+            {donation.title}
+          </h2>
+
+          {donation.user?.name && (
+            <div className="mb-3 d-flex align-items-center text-muted">
+              <User size={20} className="me-2" />
               <span
                 style={{
-                  color: "#0d6efd",
-                  cursor: "pointer",
-                  textDecoration: "underline",
+                  fontSize: "1.2rem",
+                  fontWeight: "bold",
                 }}
-                onClick={() => navigate(`/profile/${donation.user._id}`)}
               >
                 {donation.user.name}
               </span>
-            </span>
-          </div>
-        )}
-        <div className="card-body px-5 py-1">
-          <h2 className="fw-bold mb-3 text-primary">{donation.title}</h2>
-          <small className="text-muted d-block mb-3">
+            </div>
+          )}
+
+          <small className="text-muted d-block mb-3" style={{ fontSize: "1rem" }}>
             🕒 Posted {formatTimeAgo(donation.createdAt)}
           </small>
 
-          <div className="mb-3 d-flex align-items-center text-muted">
-            <Tag size={18} className="me-2" />
-            <span className="text-capitalize">{donation.kind}</span>
-          </div>
-
-          <div className="mb-3 d-flex align-items-center text-muted">
-            <MapPin size={18} className="me-2" />
-            <span>{donation.location}</span>
-          </div>
-
-          {donation.expirationDate && (
-            <div className="mb-3 d-flex align-items-center text-muted">
-              <Calendar size={18} className="me-2" />
-              <span>
-                Expires on:{" "}
-                {new Date(donation.expirationDate).toLocaleDateString()}
-              </span>
-            </div>
-          )}
+          <div className="mb-2 text-muted"><Tag className="me-2" size={18} /> {donation.kind}</div>
+          <div className="mb-2 text-muted"><MapPin className="me-2" size={18} /> {donation.location}</div>
 
           {donation.condition && (
-            <div className="mb-3 d-flex align-items-center text-muted">
-              <Info size={18} className="me-2" />
-              <span>Condition: {donation.condition}</span>
-            </div>
+            <div className="mb-3 text-muted"><Info className="me-2" size={18} /> Condition: {donation.condition}</div>
           )}
 
-          <p
-            className="mt-4 mb-4 text-secondary"
-            style={{ fontSize: "1.05rem" }}
+          {/* Description Box with scroll */}
+          <div
+            className="mb-4 text-secondary"
+            style={{
+              fontSize: "1.1rem",
+              maxHeight: "4.5em",
+              overflowY: "auto",
+              padding: "0.75rem 1rem",
+              background: "#f8f8f8",
+              borderRadius: "8px",
+              lineHeight: "1.5",
+              border: "1px solid #ddd",
+            }}
           >
             {donation.description}
-          </p>
+          </div>
 
-          {(donation.user?._id || donation.ownerEmail) && (
+          {/* Contact Donor Button */}
+          {!isOwner && (
             <button
-              className="btn btn-primary rounded-pill mt-3 px-4"
+              className="cta"
               onClick={async () => {
                 try {
                   await getOrCreateConversation(donation.user._id);
@@ -202,44 +166,29 @@ const DonationDetails = () => {
                 }
               }}
             >
-              <MessageSquare className="me-2" size={18} /> Contact Donor
+              <span className="span">Contact Donor</span>
+              <span className="second">
+                <svg width="50px" height="20px" viewBox="0 0 66 43" version="1.1">
+                  <g id="arrow" fill="none" fillRule="evenodd">
+                    <path className="one" fill="#fff" d="M40.15,3.89 ...Z" />
+                    <path className="two" fill="#fff" d="M20.15,3.89 ...Z" />
+                    <path className="three" fill="#fff" d="M0.15,3.89 ...Z" />
+                  </g>
+                </svg>
+              </span>
             </button>
           )}
         </div>
       </div>
 
+      {/* Related Donations */}
       {related.length > 0 && (
         <div className="mt-5">
           <h4 className="mb-4">More in "{donation.kind}"</h4>
           <div className="row g-4">
             {related.map((item) => (
               <div key={item._id} className="col-md-4">
-                <div
-                  className="card h-100 shadow-sm hover-zoom"
-                  style={{ cursor: "pointer" }}
-                  onClick={() => navigate(`/donations/${item._id}`)}
-                >
-                  <img
-                    src={
-                      item.images?.[0] || "https://via.placeholder.com/300x200"
-                    }
-                    className="card-img-top"
-                    alt={item.title}
-                    style={{ height: "200px", objectFit: "cover" }}
-                  />
-                  <div className="card-body">
-                    <h5 className="card-title">{item.title}</h5>
-                    <small className="text-muted d-block mb-2">
-                      🕒 {formatTimeAgo(item.createdAt)}
-                    </small>
-                    <p className="card-text text-muted mb-2">
-                      {item.location} - {item.condition}
-                    </p>
-                    <span className="badge bg-secondary text-capitalize">
-                      {item.kind}
-                    </span>
-                  </div>
-                </div>
+                <DonationCard donation={item} />
               </div>
             ))}
           </div>

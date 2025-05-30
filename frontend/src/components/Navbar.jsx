@@ -13,11 +13,11 @@ import { Dropdown } from "react-bootstrap";
 import { Settings } from "lucide-react";
 import translations from "../translations";
 import axios from "axios";
-import { useUser } from "../context/UserContext";
+import { useUserContext } from "../context/UserContext";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const { user, setUser, fetchUser } = useUser();
+  const { user, setUser, fetchUser } = useUserContext();
   const lang = localStorage.getItem("language") || "en";
   const t = translations[lang];
   const navigate = useNavigate();

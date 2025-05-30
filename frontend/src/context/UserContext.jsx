@@ -48,4 +48,4 @@ export const UserProvider = ({ children }) => {
 };
 
 // 🎯 Hook للاستخدام داخل أي مكون
-export const useUser = () => useContext(UserContext);
+export const useUserContext = () => useContext(UserContext);

@@ -23,8 +23,20 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173',
-    credentials: true
+    origin: (origin, callback) => {
+      const allowedOrigins = [
+        'http://localhost:5173',
+        'http://localhost:5174',
+        'http://localhost:5176',
+        'http://localhost:5177',
+      ];
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
   }
 });
 
@@ -34,7 +46,7 @@ const io = new Server(server, {
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5176','http://localhost:5177'],
+  origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5176','http://localhost:5177','http://localhost:5174'],
   credentials: true
 }));
 
@@ -55,7 +67,7 @@ app.use("/api/stats", require("./routes/stats"));
 app.use("/api/admin", require("./routes/adminRoutes"));
 
 // ✅ WebSocket setup
-// require('./socket')(io);
+require('./socket')(io);
 
 // ✅ الاتصال بقاعدة البيانات وتشغيل السيرفر
 async function connectDB() {

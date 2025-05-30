@@ -2,13 +2,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { fetchMessages, sendMessage } from "../api";
 import socket from "../sockets/socket";
-import { useUser } from "../context/UserContext";
+import { useUserContext } from "../context/UserContext";
 
 const ChatBox = ({ conversation, partner }) => {
   const [newMessage, setNewMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const messagesEndRef = useRef(null);
-  const { user: currentUser } = useUser();
+  const { user: currentUser } = useUserContext();
 
   const isReady = conversation?._id && partner?._id;
 

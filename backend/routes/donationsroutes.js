@@ -40,7 +40,8 @@ router.get('/user', protect, getDonationsByUser);
 router.get('/user/:userId', protect, getDonationsByUser);
 
 // Get single donation by ID
-router.get('/:id', getDonationById);
+router.get('/:id', protect, getDonationById);
+
 
 // Update a donation (authenticated)
 router.put('/:id', protect, upload.array('images', 5), updateDonation);

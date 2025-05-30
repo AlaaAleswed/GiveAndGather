@@ -30,6 +30,7 @@ exports.createDonation = async (req, res) => {
       ...req.body,
       user: req.user._id,
       images,
+       isValid: true 
     });
 
     res.status(201).json(donation);
@@ -87,11 +88,11 @@ exports.getDonationById = async (req, res) => {
     if (!donation) {
       return res.status(404).json({ message: "Donation not found" });
     }
-    await UserActivity.create({
-      user: req.user._id, // تأكد أنك تستخدم توكن يحتوي user
-      donation: donation._id,
-      action: "view",
-    });
+    // await UserActivity.create({
+    //   user: req.user._id, // تأكد أنك تستخدم توكن يحتوي user
+    //   donation: donation._id,
+    //   action: "view",
+    // });
     res.json(donation);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch donation" });

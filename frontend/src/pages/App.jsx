@@ -14,16 +14,29 @@ import ResetPassword from './ResetPassword';
 import DonationDetails from './DonationDetails';
 import EditDonation from "./EditDonation";
 import AdminDashboard from "./AdminDashboard";
-import { useUser } from "../context/UserContext";
+import { useUserContext } from "../context/UserContext";
+
 import { Navigate } from "react-router-dom";
 
-
+import AOS from 'aos';
+import 'aos/dist/aos.css';
 
 function App() {
+
+  
   
 
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
   const [language, setLanguage] = useState(() => localStorage.getItem('language') || 'en');
+
+  useEffect(() => {
+  AOS.init({
+    duration: 1000,      // مدة الأنيميشن بالمللي ثانية
+    once: true,          // الأنيميشن يحدث مرة واحدة فقط
+    easing: 'ease-in-out'
+  });
+}, []);
+
 
   useEffect(() => {
     document.body.setAttribute('data-theme', theme);
@@ -35,7 +48,7 @@ function App() {
   }, [language]);
   
   const AdminRoute = ({ children }) => {
-  const { user, loading } = useUser();
+  const { user, loading } = useUserContext();
   if (loading) return <div>Loading admin access...</div>; // ✅ لا تتخذ قرارًا قبل انتهاء التحميل
   if (!user) return <Navigate to="/auth" />;
   if (user.role !== "admin") return <Navigate to="/" />;
@@ -45,11 +58,12 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen flex flex-col bg-gray-50">
+      <div className="page-wrapper" >
         {/* Pass theme and language to Navbar if needed */}
         <Navbar language={language} setLanguage={setLanguage} />
           
-        <main className="flex-grow container mx-auto px-4 py-8">
+     <main className="main-content" >
+
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/auth" element={<Auth />} />
@@ -61,16 +75,18 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/donations/:id" element={<DonationDetails />} />
-            <Route path="/edit-donation/:id" element={<EditDonation />} />
+<Route path="/donations/edit/:id" element={<EditDonation />} />
             <Route path="/profile/:id" element={<Profile />} />
             <Route path="/chat/:id" element={<Chat />} />
             <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           </Routes>
         </main>
 
-        <Footer />
+         <Footer />
       </div>
+     
     </Router>
+    
   );
 }
 

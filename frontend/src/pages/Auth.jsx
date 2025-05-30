@@ -3,7 +3,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import don from "../assets/don.jpg";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { useUser } from "../context/UserContext";
+import { useUserContext } from "../context/UserContext";
 
 axios.defaults.baseURL = "http://localhost:5050/api";
 axios.defaults.withCredentials = true;
@@ -17,7 +17,9 @@ const Auth = () => {
   const [location, setLocation] = useState("");
   const [name, setName] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
-  const { fetchUser } = useUser();
+  const { fetchUser } =useUserContext();
+  const [showPhone, setShowPhone] = useState(true);
+
   const navigate = useNavigate();
 
   const jordanGovernorates = [
@@ -50,6 +52,7 @@ const Auth = () => {
           confirmPassword,
           phone,
           location,
+            showPhone,
         });
         alert("Registered successfully! You can now sign in.");
         setIsSignIn(true); // الانتقال إلى صفحة تسجيل الدخول
@@ -124,6 +127,21 @@ const Auth = () => {
                     </option>
                   ))}
                 </select>
+
+<div className="form-check mb-2">
+  <input
+    type="checkbox"
+    className="form-check-input"
+    id="showPhone"
+    checked={showPhone}
+    onChange={(e) => setShowPhone(e.target.checked)}
+  />
+  <label className="form-check-label" htmlFor="showPhone">
+    Allow others to see my phone number
+  </label>
+</div>
+
+
               </>
             )}
             <input

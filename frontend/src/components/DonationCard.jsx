@@ -1,4 +1,4 @@
-import { Bookmark, MapPin, Trash2 } from "lucide-react";
+import { Bookmark, MapPin, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -6,9 +6,9 @@ import axios from "axios";
 axios.defaults.baseURL = "http://localhost:5050/api";
 axios.defaults.withCredentials = true;
 
-// ✅ دالة لحساب الوقت منذ إنشاء التبرع
+// ✅ حساب الوقت منذ إنشاء التبرع
 const formatTimeAgo = (createdAt) => {
-  if (!createdAt) return ""; // حماية من الخطأ
+  if (!createdAt) return "";
   const now = new Date();
   const createdDate = new Date(createdAt);
   const diffInSeconds = Math.floor((now - createdDate) / 1000);
@@ -17,13 +17,10 @@ const formatTimeAgo = (createdAt) => {
   const day = 24 * hour;
   const week = 7 * day;
   if (diffInSeconds < minute) return `${diffInSeconds} second(s) ago`;
-  if (diffInSeconds < hour)
-    return `${Math.floor(diffInSeconds / minute)} minute(s) ago`;
-  if (diffInSeconds < day)
-    return `${Math.floor(diffInSeconds / hour)} hour(s) ago`;
-  if (diffInSeconds < week)
-    return `${Math.floor(diffInSeconds / day)} day(s) ago`;
-  return createdDate.toLocaleDateString("en-GB"); // e.g., 05/03/2025
+  if (diffInSeconds < hour) return `${Math.floor(diffInSeconds / minute)} minute(s) ago`;
+  if (diffInSeconds < day) return `${Math.floor(diffInSeconds / hour)} hour(s) ago`;
+  if (diffInSeconds < week) return `${Math.floor(diffInSeconds / day)} day(s) ago`;
+  return createdDate.toLocaleDateString("en-GB");
 };
 
 const DonationCard = ({ donation, onDelete }) => {
@@ -35,14 +32,13 @@ const DonationCard = ({ donation, onDelete }) => {
   useEffect(() => {
     const checkSaved = async () => {
       try {
-        const res = await axios.get("/saved", { withCredentials: true });
+        const res = await axios.get("/saved");
         const savedIds = res.data.map((d) => d._id);
         setIsSaved(savedIds.includes(donation._id));
       } catch (err) {
         console.error("❌ Failed to check saved:", err.message);
       }
     };
-
     checkSaved();
   }, [donation._id]);
 
@@ -50,7 +46,7 @@ const DonationCard = ({ donation, onDelete }) => {
     let interval;
     if (hovered && donation.images?.length > 1) {
       interval = setInterval(() => {
-        setImageIndex((prevIndex) => (prevIndex + 1) % donation.images.length);
+        setImageIndex((prev) => (prev + 1) % donation.images.length);
       }, 1500);
     }
     return () => clearInterval(interval);
@@ -60,17 +56,9 @@ const DonationCard = ({ donation, onDelete }) => {
     e.stopPropagation();
     try {
       if (isSaved) {
-        await axios.delete(`/saved/${donation._id}`, {
-          withCredentials: true,
-        });
+        await axios.delete(`/saved/${donation._id}`);
       } else {
-        await axios.post(
-          `/saved/${donation._id}`,
-          {},
-          {
-            withCredentials: true,
-          }
-        );
+        await axios.post(`/saved/${donation._id}`, {});
       }
       setIsSaved(!isSaved);
     } catch (err) {
@@ -79,30 +67,19 @@ const DonationCard = ({ donation, onDelete }) => {
     }
   };
 
-  const handleDelete = async (e) => {
-    e.stopPropagation();
-    const confirm = window.confirm(
-      "Are you sure you want to delete this donation?"
-    );
-    if (!confirm) return;
-
-    try {
-      await axios.delete(`/donations/${donation._id}`, {
-        withCredentials: true,
-      });
-
-      if (onDelete) onDelete(donation._id); // تحديث القائمة في الصفحة الأم
-    } catch (err) {
-      console.error("❌ Failed to delete donation:", err.message);
-      alert("Failed to delete donation.");
-    }
-  };
-
   const currentImage = donation.images?.[imageIndex];
-  // console.log("🔍 Current image filename:", currentImage);
-  const imageUrl = currentImage
-    ? `http://localhost:5050/uploads/${currentImage}`
-    : "/assets/noImage.png";
+  
+  const imageObj = currentImage;
+    console.log("🖼️ imageObj:", imageObj);
+
+  const imageUrl =
+
+    typeof imageObj === "string"
+      ? imageObj.startsWith("http")
+        ? imageObj
+        : `http://localhost:5050/uploads/${imageObj}`
+      : `http://localhost:5050/uploads/${imageObj?.filename || imageObj?.name || ""}`;
+  const validImage = imageUrl && imageUrl !== "http://localhost:5050/uploads/";
 
   return (
     <div
@@ -115,15 +92,7 @@ const DonationCard = ({ donation, onDelete }) => {
       }}
       style={{ cursor: "pointer" }}
     >
-      {/* Save/Delete buttons */}
       <div className="position-absolute top-0 end-0 p-2 d-flex gap-2">
-        {/* <Trash2
-          size={18}
-          className="text-danger"
-          title="Delete Donation"
-          style={{ cursor: "pointer" }}
-          onClick={handleDelete}
-        /> */}
         <Bookmark
           size={20}
           color={isSaved ? "#007bff" : "#aaa"}
@@ -133,27 +102,15 @@ const DonationCard = ({ donation, onDelete }) => {
         />
       </div>
 
-      <div
-        style={{
-          height: "60%",
-          overflow: "hidden",
-          width: "100%",
-          paddingTop: "8px",
-        }}
-      >
+      <div style={{ height: "60%", overflow: "hidden", width: "100%", paddingTop: "8px" }}>
         <img
-          src={imageUrl}
+          src={validImage ? imageUrl : "/assets/noImage.png"}
           onError={(e) => {
-            e.target.onerror = null; // منع الدخول في حلقة لانهائية
+            e.target.onerror = null;
             e.target.src = "/assets/noImage.png";
           }}
           alt={donation.title}
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            transition: "0.5s",
-          }}
+          style={{ width: "100%", height: "100%", objectFit: "cover", transition: "0.5s" }}
         />
       </div>
 
@@ -162,9 +119,7 @@ const DonationCard = ({ donation, onDelete }) => {
           <span className="badge bg-primary text-light text-capitalize px-3 py-1 rounded-pill">
             {donation.kind}
           </span>
-          <small className="text-muted">
-            {formatTimeAgo(donation.createdAt)}
-          </small>
+          <small className="text-muted">{formatTimeAgo(donation.createdAt)}</small>
         </div>
 
         <h5 className="card-title mb-2 fw-semibold">{donation.title}</h5>
@@ -176,13 +131,14 @@ const DonationCard = ({ donation, onDelete }) => {
 
         <button
           type="button"
-          className="btn btn-primary btn-sm rounded-pill mt-auto"
+          className="btn-animated mt-auto d-flex align-items-center gap-1"
           onClick={(e) => {
             e.stopPropagation();
             navigate(`/donations/${donation._id}`);
           }}
         >
-          View Details
+          <span>View Details</span>
+          <ChevronRight size={18} />
         </button>
       </div>
     </div>

@@ -5,7 +5,7 @@ const generateToken = require("../utils/generateToken");
 
 // Register
 exports.register = async (req, res) => {
-  const { name, email, password, confirmPassword, phone, location } = req.body;
+  const { name, email, password, confirmPassword, phone, location, showPhone } = req.body;
 
   // تحقق من وجود كل الحقول المطلوبة
   if (!name || !email || !password || !confirmPassword || !phone || !location) {
@@ -29,6 +29,7 @@ exports.register = async (req, res) => {
       password: hashedPassword,
       phone,
       location,
+      showPhone,
     });
 
     const token = generateToken(user._id);

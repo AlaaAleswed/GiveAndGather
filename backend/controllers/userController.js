@@ -32,36 +32,53 @@ exports.getAllUsers = async (req, res) => {
 
 
 
-
 exports.updateProfile = async (req, res) => {
   try {
+
+       console.log("BODY:", req.body);
+    console.log("FILES:", req.files);
+    
     const userId = req.user._id;
     const updateFields = {
       name: req.body.name,
       location: req.body.location,
       phone: req.body.phone,
       description: req.body.description,
+      showPhone: req.body.showPhone === "true" || req.body.showPhone === true,
     };
+
+    // ✅ معالجة صورة البروفايل
     if (req.files?.profileImage?.[0]) {
       updateFields.profileImage = req.files.profileImage[0].filename;
+    } else if (req.body.existingProfileImage) {
+      // استخرج فقط اسم الملف من الرابط الكامل
+      const existingProfile = req.body.existingProfileImage.split("/uploads/")[1];
+      updateFields.profileImage = existingProfile;
     }
+
+    // ✅ معالجة صورة الخلفية
     if (req.files?.backgroundImage?.[0]) {
       updateFields.backgroundImage = req.files.backgroundImage[0].filename;
+    } else if (req.body.existingBackgroundImage) {
+      const existingBackground = req.body.existingBackgroundImage.split("/uploads/")[1];
+      updateFields.backgroundImage = existingBackground;
     }
+
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       updateFields,
       { new: true }
     ).select("-password");
+
     res.json({
-  ...updatedUser.toObject(),
-  profileImage: updatedUser.profileImage
-    ? `http://localhost:5050/uploads/${updatedUser.profileImage}`
-    : null,
-  backgroundImage: updatedUser.backgroundImage
-    ? `http://localhost:5050/uploads/${updatedUser.backgroundImage}`
-    : null
-});
+      ...updatedUser.toObject(),
+      profileImage: updatedUser.profileImage
+        ? `http://localhost:5050/uploads/${updatedUser.profileImage}`
+        : null,
+      backgroundImage: updatedUser.backgroundImage
+        ? `http://localhost:5050/uploads/${updatedUser.backgroundImage}`
+        : null,
+    });
   } catch (err) {
     res.status(500).json({ message: "Profile update failed: " + err.message });
   }
