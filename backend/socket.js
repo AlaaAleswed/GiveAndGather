@@ -18,6 +18,7 @@ module.exports = (io) => {
     socket.on("sendMessage", async ({ senderId, receiverId, message }) => {
       try {
         const receiverSocket = users.get(String(receiverId));
+        const senderSocket = users.get(String(senderId)); // ✅ أضف هذا
 
         // ✅ تحميل الرسالة من قاعدة البيانات مع بيانات المرسل والمستقبل
         const fullMessage = await Message.findById(message._id)
@@ -40,6 +41,12 @@ module.exports = (io) => {
         } else {
           console.warn("⚠️ Receiver is not connected to socket:", receiverId);
         }
+        if (senderSocket) {
+      io.to(senderSocket).emit("newMessage", {
+        ...fullMessage.toObject(),
+        conversationId: message.conversationId,
+      });
+    }
       } catch (err) {
         console.error("❌ Socket sendMessage error:", err.message);
       }

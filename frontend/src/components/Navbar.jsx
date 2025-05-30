@@ -35,7 +35,6 @@ const Navbar = () => {
       });
   }, []);
 
-
   const textColor = isHome ? "text-light" : "text-dark";
 
   return (
@@ -80,6 +79,17 @@ const Navbar = () => {
           }`}
         >
           <ul className="navl navbar-nav justify-content-end flex-grow-1 pe-3 ms-auto d-flex align-items-center gap-3">
+            {user?.role === "admin" && (
+              <li className="nav-item pe-3 py-3">
+                <Link
+                  to="/admin"
+                  className={`d-flex align-items-center text-decoration-none ${textColor}`}
+                >
+                  <Settings className="me-1" size={18} />
+                  <span>Admin Panel</span>
+                </Link>
+              </li>
+            )}
             <li className="nav-item pe-3 py-3">
               <Link
                 to="/"

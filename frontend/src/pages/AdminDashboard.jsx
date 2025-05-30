@@ -1,79 +1,43 @@
-import React, { useState } from "react";
-import UsersAdmin from "../components/admin/UsersAdmin";
-import DonationsAdmin from "../components/admin/DonationsAdmin";
-import ReportsAdmin from "../components/admin/ReportsAdmin";
-// import SiteSettings from "../components/admin/SiteSettings";
-import AdminHome from "../components/admin/AdminHome";
+import React from "react";
+import { Link, Outlet, useLocation } from "react-router-dom";
 
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState("users");
-
-  const renderTab = () => {
-    switch (activeTab) {
-      case "home":
-        return <AdminHome />;
-      case "users":
-        return <UsersAdmin />;
-      case "donations":
-        return <DonationsAdmin />;
-      case "reports":
-        return <ReportsAdmin />;
-      case "settings":
-        return <SiteSettings />;
-      default:
-        return <AdminHome />;
-    }
-  };
+  const { pathname } = useLocation();
 
   return (
     <div className="container py-4">
       <h1 className="mb-4">Admin Panel</h1>
 
       <div className="btn-group mb-4">
-        <button
-          className={`btn btn-${
-            activeTab === "home" ? "primary" : "outline-primary"
-          }`}
-          onClick={() => setActiveTab("home")}
+        <Link
+          to="/admin"
+          className={`btn btn-${pathname === "/admin" ? "primary" : "outline-primary"}`}
         >
           Home
-        </button>
-
-        <button
-          className={`btn btn-${
-            activeTab === "users" ? "primary" : "outline-primary"
-          }`}
-          onClick={() => setActiveTab("users")}
+        </Link>
+        <Link
+          to="/admin/users"
+          className={`btn btn-${pathname === "/admin/users" ? "primary" : "outline-primary"}`}
         >
           Users
-        </button>
-        <button
-          className={`btn btn-${
-            activeTab === "donations" ? "primary" : "outline-primary"
-          }`}
-          onClick={() => setActiveTab("donations")}
+        </Link>
+        <Link
+          to="/admin/donations"
+          className={`btn btn-${pathname === "/admin/donations" ? "primary" : "outline-primary"}`}
         >
           Donations
-        </button>
-        <button
-          className={`btn btn-${
-            activeTab === "reports" ? "primary" : "outline-primary"
-          }`}
-          onClick={() => setActiveTab("reports")}
+        </Link>
+        <Link
+          to="/admin/reports"
+          className={`btn btn-${pathname === "/admin/reports" ? "primary" : "outline-primary"}`}
         >
           Reports
-        </button>
-        <button
-          className={`btn btn-${
-            activeTab === "settings" ? "primary" : "outline-primary"
-          }`}
-          onClick={() => setActiveTab("settings")}
-        >
-          Settings
-        </button>
+        </Link>
       </div>
 
-      <div className="card shadow p-4">{renderTab()}</div>
+      <div className="card shadow p-4">
+        <Outlet />
+      </div>
     </div>
   );
 };

@@ -2,6 +2,7 @@ const Message = require("../models/Message");
 const Conversation = require("../models/Conversation");
 const Report = require("../models/Report");
 const Block = require("../models/Block");
+const Donation = require ("../models/Donation")
 const path = require("path");
 const mongoose = require("mongoose");
 
@@ -68,6 +69,11 @@ exports.sendMessage = async (req, res) => {
       location,
       replyTo,
       conversationId: new mongoose.Types.ObjectId(conversationId),
+    });
+    
+    // ✅ زيادة التفاعل للتبرع المرتبط بالمحادثة (بعد إنشاء الرسالة)
+    await Donation.findByIdAndUpdate(conversation.relatedDonation, {
+      $inc: { interactions: 1 },
     });
 
     // ✅ تحديث آخر رسالة في المحادثة

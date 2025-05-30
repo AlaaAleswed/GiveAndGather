@@ -1,8 +1,4 @@
-// ChatBox.jsx
 import React, { useEffect, useRef, useState } from "react";
-import { fetchMessages, sendMessage, deleteMessage } from "../api";
-import socket from "../sockets/socket";
-import { useUser } from "../context/UserContext";
 import {
   FiImage,
   FiVideo,
@@ -13,61 +9,50 @@ import {
   FiPlus,
   FiStopCircle,
 } from "react-icons/fi";
+import { useUser } from "../context/UserContext";
+import socket from "../sockets/socket";
+import { fetchMessages, deleteMessage } from "../api";
 
 const ChatBox = ({ conversation, partner }) => {
   const [newMessage, setNewMessage] = useState("");
   const [messages, setMessages] = useState([]);
   const [showOptions, setShowOptions] = useState(false);
   const [recording, setRecording] = useState(false);
-  const messagesEndRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const messagesEndRef = useRef(null);
+  const { user: currentUser } = useUser();
   const isReady = conversation?._id && partner?._id;
   const googleMapsKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
-  const { user: currentUser } = useUser();
-
   useEffect(() => {
-    const loadMessages = async () => {
-      if (!conversation?._id) return;
-      const res = await fetchMessages(conversation._id);
-      // ✅ إزالة التكرار باستخدام Map على أساس _id
-      const uniqueMessages = Array.from(
-        new Map(res.data.map((msg) => [msg._id, msg])).values()
-      );
-      setMessages(uniqueMessages);
-    };
-    loadMessages();
-  }, [conversation?._id, conversation?.triggerRefresh]);
-
+    if (currentUser?._id) {
+      socket.emit("register", currentUser._id);
+    }
+  }, [currentUser?._id]);
 
   useEffect(() => {
     if (!conversation?._id) return;
     fetchMessages(conversation._id).then((res) => setMessages(res.data || []));
   }, [conversation?._id]);
 
-  // useEffect(() => {
-  //   const handleIncoming = (incoming) => {
-  //     if (incoming.conversationId === conversation?._id) {
-  //       console.log("📩 Real-time message:", incoming);
-  //       // إعادة تحميل كل الرسائل
-  //       fetchMessages(conversation._id).then((res) => {
-  //         setMessages(res.data || []); }); }};
-  //   socket.on("newMessage", handleIncoming);
-  //   return () => socket.off("newMessage", handleIncoming);
-  // }, [conversation?._id, conversation?.triggerRefresh]);
-
   useEffect(() => {
     const handleIncoming = (msg) => {
       if (msg.conversationId === conversation?._id) {
-        setMessages((prev) => [...prev, msg]);}};
+        setMessages((prev) => [...prev, msg]);
+      }
+    };
     const handleDeleted = ({ messageId, conversationId }) => {
       if (conversationId === conversation._id) {
         setMessages((prev) =>
           prev.map((msg) =>
             msg._id === messageId
               ? { ...msg, deleted: true, content: "", attachment: null }
-              : msg));}};
+              : msg
+          )
+        );
+      }
+    };
     socket.on("newMessage", handleIncoming);
     socket.on("messageDeleted", handleDeleted);
     return () => {
@@ -76,50 +61,20 @@ const ChatBox = ({ conversation, partner }) => {
     };
   }, [conversation?._id]);
 
-    const autoHide = () => setShowOptions(false);
-
   const handleSend = async () => {
     const text = newMessage.trim();
     if (!text) return;
     try {
-      const res = await sendMessage(conversation._id, text);
-      // أرسل الرسالة للطرف الآخر
-      socket.emit("sendMessage", {
-        senderId: currentUser._id,
-        receiverId: partner._id,
-        message: res.data,
-      });
-      // ✅ أعد تحميل كل الرسائل من السيرفر لضمان ترتيبها وبياناتها
-      const refreshed = await fetchMessages(conversation._id);
-      setMessages(refreshed.data);
-      setNewMessage("");
-    } catch (err) {
-      console.error("❌ Failed to send message:", err);
-    }
-  };
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-  if (!isReady) {
-    return (
-      <div className="flex-grow-1 d-flex align-items-center justify-content-center text-muted">
-        Select a conversation to start messaging.
-      </div>
-    );
-  }
-
-  const handleUpload = async (e, type) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("conversationId", conversation._id);
-    try {
       const res = await fetch("http://localhost:5050/api/messages", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
+        body: JSON.stringify({
+          conversationId: conversation._id,
+          content: text,
+          receiver: partner._id,
+          type: "text",
+        }),
       });
       const data = await res.json();
       socket.emit("sendMessage", {
@@ -127,92 +82,10 @@ const ChatBox = ({ conversation, partner }) => {
         receiverId: partner._id,
         message: data,
       });
-      setMessages((prev) => [...prev, data]);
-      autoHide();
+      // setMessages((prev) => [...prev, data]);
+      setNewMessage("");
     } catch (err) {
-      console.error("❌ Upload failed:", err);
-    }
-  };
-
-  const sendLocation = () => {
-    if (!navigator.geolocation)
-      return alert("Geolocation not supported");
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const { latitude: lat, longitude: lng } = pos.coords;
-      try {
-        const res = await fetch("http://localhost:5050/api/messages", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            type: "location",
-            content: `https://www.google.com/maps?q=${lat},${lng}`,
-            location: { lat, lng },
-            conversationId: conversation._id,
-            receiver: partner._id,
-          }),
-        });
-        const data = await res.json();
-        socket.emit("sendMessage", {
-          senderId: currentUser._id,
-          receiverId: partner._id,
-          message: data,
-        });
-        setMessages((prev) => [...prev, data]);
-        autoHide();
-      } catch (err) {
-        console.error("❌ Failed to send location:", err);
-      }
-    });
-  };
-
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-      });
-      const recorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = recorder;
-      audioChunksRef.current = [];
-
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data);
-      };
-
-      recorder.onstop = async () => {
-        const blob = new Blob(audioChunksRef.current, {
-          type: "audio/webm",
-        });
-        const formData = new FormData();
-        formData.append("file", blob, "voice-message.webm");
-        formData.append("conversationId", conversation._id);
-
-        const res = await fetch("http://localhost:5050/api/messages", {
-          method: "POST",
-          body: formData,
-          credentials: "include",
-        });
-
-        const data = await res.json();
-        socket.emit("sendMessage", {
-          senderId: currentUser._id,
-          receiverId: partner._id,
-          message: data,
-        });
-        setMessages((prev) => [...prev, data]);
-      };
-
-      recorder.start();
-      setRecording(true);
-    } catch (err) {
-      console.error("🎤 Error accessing mic:", err);
-    }
-  };
-
-  const stopRecording = () => {
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      setRecording(false);
+      console.error("❌ Failed to send message:", err);
     }
   };
 
@@ -235,10 +108,99 @@ const ChatBox = ({ conversation, partner }) => {
     }
   };
 
+  const handleUpload = async (e, type) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("conversationId", conversation._id);
+    const res = await fetch("http://localhost:5050/api/messages", {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+    });
+    const data = await res.json();
+    socket.emit("sendMessage", {
+      senderId: currentUser._id,
+      receiverId: partner._id,
+      message: data,
+    });
+    // setMessages((prev) => [...prev, data]);
+    setShowOptions(false);
+  };
+
+  const sendLocation = () => {
+    if (!navigator.geolocation) return alert("Geolocation not supported");
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const { latitude: lat, longitude: lng } = pos.coords;
+      const res = await fetch("http://localhost:5050/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          type: "location",
+          content: `https://www.google.com/maps?q=${lat},${lng}`,
+          location: { lat, lng },
+          conversationId: conversation._id,
+          receiver: partner._id,
+        }),
+      });
+      const data = await res.json();
+      socket.emit("sendMessage", {
+        senderId: currentUser._id,
+        receiverId: partner._id,
+        message: data,
+      });
+      // setMessages((prev) => [...prev, data]);
+      setShowOptions(false);
+    });
+  };
+
+  const startRecording = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const recorder = new MediaRecorder(stream);
+    mediaRecorderRef.current = recorder;
+    audioChunksRef.current = [];
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) audioChunksRef.current.push(e.data);
+    };
+    recorder.onstop = async () => {
+      const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+      const formData = new FormData();
+      formData.append("file", blob, "voice-message.webm");
+      formData.append("conversationId", conversation._id);
+      const res = await fetch("http://localhost:5050/api/messages", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      const data = await res.json();
+      socket.emit("sendMessage", {
+        senderId: currentUser._id,
+        receiverId: partner._id,
+        message: data,
+      });
+      // setMessages((prev) => [...prev, data]);
+    };
+    recorder.start();
+    setRecording(true);
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      setRecording(false);
+    }
+  };
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   if (!isReady || !partner) {
     return (
       <div className="flex-grow-1 d-flex align-items-center justify-content-center text-muted">
-        Loading chat...
+        Select a conversation to start messaging.
       </div>
     );
   }
@@ -247,7 +209,11 @@ const ChatBox = ({ conversation, partner }) => {
     <div className="flex-grow-1 d-flex flex-column">
       <div className="border-bottom p-3 d-flex align-items-center">
         <img
-          src={partner?.profileImage || "/default-user.png"}
+          src={
+            partner.profileImage
+              ? `http://localhost:5050/uploads/${partner.profileImage}`
+              : "/default-user.png"
+          }
           alt="avatar"
           className="rounded-circle me-2"
           style={{ width: 40, height: 40, objectFit: "cover" }}
@@ -261,36 +227,58 @@ const ChatBox = ({ conversation, partner }) => {
       </div>
 
       <div className="flex-grow-1 overflow-auto px-3 py-2">
-        {messages.map((msg, idx) => {
+        {messages.map((msg) => {
           const isMine =
             String(msg.sender?._id || msg.sender) === String(currentUser._id);
+          const isText = msg.type === "text";
 
           return (
             <div
-              key={idx}
+              key={msg._id}
               className={`d-flex mb-2 ${
                 isMine ? "justify-content-end" : "justify-content-start"
               }`}
             >
               <div
-                className="p-2 rounded position-relative"
-                style={{ maxWidth: "70%",
-                  backgroundColor: isMine ? "#0d6efd" : "#e2eefd",
-                  color: isMine ? "#fff" : "#000",
-                  alignSelf: isMine ? "flex-end" : "flex-start", }}
+                className="position-relative"
+                style={{
+                  backgroundColor: isText
+                    ? isMine
+                      ? "#0d6efd"
+                      : "#e2efff"
+                    : "transparent",
+                  color: isText ? (isMine ? "#fff" : "#000") : "#000",
+                  borderRadius: isText
+                    ? isMine
+                      ? "18px 18px 0 18px"
+                      : "18px 18px 18px 0"
+                    : 12,
+                  maxWidth: "75%",
+                  padding: isText ? "10px 14px" : 0,
+                  fontSize: "0.95rem",
+                }}
               >
-                {isMine && !msg.deleted && (
+                {isMine && !msg.deleted && isText && (
                   <FiTrash2
-                    onClick={() => handleDelete(idx)}
+                    onClick={() => {
+                      if (window.confirm("Delete this message?"))
+                        handleDelete(msg._id);
+                    }}
                     style={{
-                      cursor: "pointer",
                       position: "absolute",
-                      left: -28,
-                      top: "50%",
-                      transform: "translateY(-50%)",
+                      top: 5,
+                      right: -26,
+                      cursor: "pointer",
+                      color: "#dc3545",
+                      background: "#fff",
+                      borderRadius: "50%",
+                      padding: 3,
+                      boxShadow: "0 0 4px rgba(0,0,0,0.15)",
+                      zIndex: 10,
                     }}
                   />
                 )}
+
                 {msg.deleted ? (
                   <em className="text-muted">This message was deleted</em>
                 ) : msg.type === "text" ? (
@@ -298,20 +286,19 @@ const ChatBox = ({ conversation, partner }) => {
                 ) : msg.type === "image" ? (
                   <img
                     src={`http://localhost:5050/uploads/${msg.attachment}`}
-                    alt="img"
-                    style={{ maxWidth: 200 }}
+                    style={{ maxWidth: 180, borderRadius: 10 }}
                   />
                 ) : msg.type === "video" ? (
                   <video
                     controls
                     src={`http://localhost:5050/uploads/${msg.attachment}`}
-                    style={{ maxWidth: 250 }}
+                    style={{ maxWidth: 200 }}
                   />
                 ) : msg.type === "audio" ? (
                   <audio
                     controls
                     src={`http://localhost:5050/uploads/${msg.attachment}`}
-                    style={{ height: 28 }}
+                    style={{ height: 32, width: 160 }}
                   />
                 ) : msg.type === "file" ? (
                   <a
@@ -325,13 +312,28 @@ const ChatBox = ({ conversation, partner }) => {
                   msg.location?.lng ? (
                   <iframe
                     title="Google Maps"
-                    width="250"
-                    height="180"
+                    width="200"
+                    height="160"
                     style={{ border: 0, borderRadius: 8 }}
                     src={`https://www.google.com/maps/embed/v1/view?key=${googleMapsKey}&center=${msg.location.lat},${msg.location.lng}&zoom=16`}
                     allowFullScreen
                   ></iframe>
                 ) : null}
+
+                {msg.createdAt && (
+                  <div
+                    className="text-muted small mt-1"
+                    style={{
+                      fontSize: "0.7rem",
+                      textAlign: isMine ? "right" : "left",
+                    }}
+                  >
+                    {new Date(msg.createdAt).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -339,8 +341,8 @@ const ChatBox = ({ conversation, partner }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-3 border-top d-flex align-items-center">
-        <div className="position-relative me-2">
+      <div className="p-3 border-top d-flex align-items-center gap-2 bg-white">
+        <div className="position-relative">
           <button
             className="btn btn-light border"
             onClick={() => setShowOptions(!showOptions)}
@@ -391,7 +393,7 @@ const ChatBox = ({ conversation, partner }) => {
 
         <input
           type="text"
-          className="form-control me-2"
+          className="form-control rounded-pill"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
           placeholder="Type a message..."
@@ -399,17 +401,23 @@ const ChatBox = ({ conversation, partner }) => {
         />
 
         {recording ? (
-          <button className="btn btn-danger " onClick={stopRecording}>
-            <FiStopCircle /> Stop
+          <button
+            className="btn btn-danger rounded-circle"
+            onClick={stopRecording}
+          >
+            <FiStopCircle />
           </button>
         ) : (
-          <button className="btn btn-secondary " onClick={startRecording}>
-            <FiMic /> Record
+          <button
+            className="btn btn-secondary rounded-circle"
+            onClick={startRecording}
+          >
+            <FiMic />
           </button>
         )}
 
         <button
-          className="btn btn-primary"
+          className="btn btn-primary rounded-circle"
           onClick={handleSend}
           disabled={!newMessage.trim()}
         >

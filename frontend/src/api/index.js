@@ -27,8 +27,8 @@ export const sendMessage = async (conversationId, content) => {
 };
 
 // ✅ جلب أو إنشاء محادثة مع مستخدم معين (مثل المتبرع)
-export const getOrCreateConversation = async (userId) => {
-  const res = await api.get(`/conversations/${userId}`);
+export const getOrCreateConversation = async (userId, donationId) => {
+  const res = await api.get(`/conversations/${userId}/${donationId}`);
   return res.data; // يجب أن يحتوي على _id
 };
 
