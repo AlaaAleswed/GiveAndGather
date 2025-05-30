@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useContext } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Gift,
@@ -17,7 +17,7 @@ import DonationCard from "../components/DonationCard";
 import axios from "axios";
 
 
-import React, { useEffect } from 'react';
+
 import '../index.css'; // Ensure your global styles are here
 import leftHand from '../assets/leftHand.png'; // اليد العلوية
 import rightHand from '../assets/rightHand.png'; // اليد السفلية

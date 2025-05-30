@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Auth from "./Auth";
 import Donations from "./Donations";
 import AddDonation from "./AddDonations";
@@ -20,53 +20,40 @@ import DonationsAdmin from "../components/admin/DonationsAdmin";
 import UsersAdmin from "../components/admin/UsersAdmin";
 import ReportsAdmin from "../components/admin/ReportsAdmin";
 
-import { Navigate } from "react-router-dom";
-import { Navigate } from "react-router-dom";
-
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
 function App() {
-
-  
-  
-
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
   const [language, setLanguage] = useState(() => localStorage.getItem('language') || 'en');
 
   useEffect(() => {
-  AOS.init({
-    duration: 1000,      // مدة الأنيميشن بالمللي ثانية
-    once: true,          // الأنيميشن يحدث مرة واحدة فقط
-    easing: 'ease-in-out'
-  });
-}, []);
-
+    AOS.init({
+      duration: 1000,
+      once: true,
+      easing: 'ease-in-out',
+    });
+  }, []);
 
   useEffect(() => {
     document.body.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
+  }, [theme]);
 
-
-
-  
   const AdminRoute = ({ children }) => {
-  const { user, loading } = useUserContext();
-  if (loading) return <div>Loading admin access...</div>; // ✅ لا تتخذ قرارًا قبل انتهاء التحميل
-  if (!user) return <Navigate to="/auth" />;
-  if (user.role !== "admin") return <Navigate to="/" />;
-  return children;
-};
+    const { user, loading } = useUserContext();
+    if (loading) return <div>Loading admin access...</div>;
+    if (!user) return <Navigate to="/auth" />;
+    if (user.role !== "admin") return <Navigate to="/" />;
+    return children;
+  };
 
   return (
     <Router>
-      <div className="page-wrapper" >
-        {/* Pass theme and language to Navbar if needed */}
+      <div className="page-wrapper">
         <Navbar language={language} setLanguage={setLanguage} />
-          
-     <main className="main-content" >
 
-
+        <main className="main-content">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/auth" element={<Auth />} />
@@ -83,11 +70,13 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/donations/:id" element={<DonationDetails />} />
-<Route path="/donations/edit/:id" element={<EditDonation />} />
+            <Route path="/donations/edit/:id" element={<EditDonation />} />
             <Route path="/profile/:id" element={<Profile />} />
             <Route path="/chat/:id" element={<Chat />} />
 
-            <Route path="/admin" element={
+            <Route
+              path="/admin"
+              element={
                 <AdminRoute>
                   <AdminDashboard />
                 </AdminRoute>
@@ -101,12 +90,10 @@ function App() {
           </Routes>
         </main>
 
-         <Footer />
+        <Footer />
       </div>
-     
     </Router>
-    
   );
-});
 }
+
 export default App;
