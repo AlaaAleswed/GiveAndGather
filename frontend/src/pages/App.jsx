@@ -1,21 +1,26 @@
-import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Auth from './Auth';
-import Donations from './Donations';
-import AddDonation from './AddDonations';
-import Chat from './Chat';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
-import Home from './Home';
-import SettingsPage from './SettingsPage';
-import Profile from './Profile';
-import ForgotPassword from './ForgotPassword';
-import ResetPassword from './ResetPassword';
-import DonationDetails from './DonationDetails';
+import React, { useEffect, useState } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Auth from "./Auth";
+import Donations from "./Donations";
+import AddDonation from "./AddDonations";
+import Chat from "./Chat";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import Home from "./Home";
+import SettingsPage from "./SettingsPage";
+import Profile from "./Profile";
+import ForgotPassword from "./ForgotPassword";
+import ResetPassword from "./ResetPassword";
+import DonationDetails from "./DonationDetails";
 import EditDonation from "./EditDonation";
-import AdminDashboard from "./AdminDashboard";
 import { useUserContext } from "../context/UserContext";
+import AdminDashboard from "../pages/AdminDashboard";
+import AdminHome from "../components/admin/AdminHome";
+import DonationsAdmin from "../components/admin/DonationsAdmin";
+import UsersAdmin from "../components/admin/UsersAdmin";
+import ReportsAdmin from "../components/admin/ReportsAdmin";
 
+import { Navigate } from "react-router-dom";
 import { Navigate } from "react-router-dom";
 
 import AOS from 'aos';
@@ -41,11 +46,9 @@ function App() {
   useEffect(() => {
     document.body.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
-  }, [theme]);
 
-  useEffect(() => {
-    localStorage.setItem('language', language);
-  }, [language]);
+
+
   
   const AdminRoute = ({ children }) => {
   const { user, loading } = useUserContext();
@@ -55,7 +58,6 @@ function App() {
   return children;
 };
 
-
   return (
     <Router>
       <div className="page-wrapper" >
@@ -64,21 +66,38 @@ function App() {
           
      <main className="main-content" >
 
+
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/donations" element={<Donations />} />
             <Route path="/add-donation" element={<AddDonation />} />
-            <Route path="/profile" element={<Profile/>} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/chat" element={<Chat />} />
-            <Route path="/settings" element={<SettingsPage setTheme={setTheme} setLanguage={setLanguage} />} />
+            <Route
+              path="/settings"
+              element={
+                <SettingsPage setTheme={setTheme} setLanguage={setLanguage} />
+              }
+            />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/donations/:id" element={<DonationDetails />} />
 <Route path="/donations/edit/:id" element={<EditDonation />} />
             <Route path="/profile/:id" element={<Profile />} />
             <Route path="/chat/:id" element={<Chat />} />
-            <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+
+            <Route path="/admin" element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            >
+              <Route index element={<AdminHome />} />
+              <Route path="users" element={<UsersAdmin />} />
+              <Route path="reports" element={<ReportsAdmin />} />
+              <Route path="donations" element={<DonationsAdmin />} />
+            </Route>
           </Routes>
         </main>
 
@@ -88,6 +107,6 @@ function App() {
     </Router>
     
   );
+});
 }
-
-export default App; 
+export default App;

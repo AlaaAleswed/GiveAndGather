@@ -10,6 +10,7 @@ router.post('/', protect, conversationController.createGroupConversation);
 router.get('/', protect, conversationController.getAllConversations);
 
 // ✅ جلب أو إنشاء محادثة مع مستخدم معين (مثل المتبرع)
-router.get('/:userId', protect, conversationController.getOrCreateConversation);
+router.get('/:userId/:donationId', protect, conversationController.getOrCreateConversation);
+
 
 module.exports = router;

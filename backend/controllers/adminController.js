@@ -1,4 +1,6 @@
 const User = require("../models/User");
+const Donation = require("../models/Donation");
+const Report = require("../models/Report");
 
 exports.getAllUsers = async (req, res) => {
   try {
@@ -51,9 +53,10 @@ exports.deleteUserByAdmin = async (req, res) => {
 
 exports.getAllDonations = async (req, res) => {
   try {
-    const donations = await Donation.find().populate("user", "name");
+    const donations = await Donation.find().populate("user", "name email");
     res.json(donations);
   } catch (err) {
+    console.error("❌ Failed to fetch donations:", err.message);
     res.status(500).json({ message: "Failed to fetch donations" });
   }
 };

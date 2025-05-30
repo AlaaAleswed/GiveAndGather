@@ -49,6 +49,7 @@ const [showThankYou, setShowThankYou] = useState(false);
       setExistingImages(donation.images || []);
     }
   }, [mode, donation]);
+<<<<<<< HEAD
 const handleFileChange = (e) => {
   const files = Array.from(e.target.files).filter(file =>
     file.name.match(/\.(jpg|jpeg|png|gif)$/i)
@@ -58,6 +59,29 @@ const handleFileChange = (e) => {
   setImages((prev) => [...prev, ...files]);
   setNewImages((prev) => [...prev, ...files]);
 };
+=======
+
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files).filter((file) =>
+      file.name.match(/\.(jpg|jpeg|png|gif)$/i)
+    );
+    const readers = files.map((file) => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          resolve({ file, preview: reader.result });
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(readers).then((results) => {
+      setImages((prev) => [...prev, ...results]);
+      setNewImages((prev) => [...prev, ...results]); // ✅ ضروري
+    });
+  };
+>>>>>>> f29e292195c271172399771d7d8d5339619f0094
 
   const removeOldImage = (index) => {
     const updated = [...existingImages];
@@ -71,6 +95,7 @@ const handleFileChange = (e) => {
     setNewImages(updated);
   };
 
+<<<<<<< HEAD
 const handleSubmit = async (e) => {
   e.preventDefault();
   setLoading(true);
@@ -108,6 +133,31 @@ const handleSubmit = async (e) => {
       await axios.post("/donations", formData, {
         withCredentials: true,
         headers: { "Content-Type": "multipart/form-data" },
+=======
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("kind", kind);
+      formData.append("description", description);
+      formData.append("location", location);
+      // formData.append("expireDate", expirationDate);
+      formData.append("condition", condition);
+      formData.append("existingImages", JSON.stringify(existingImages));
+
+      if (kind === "food") {
+        if (!expirationDate) {
+          alert("Please provide an expiration date for food donations.");
+          return;
+        }
+        formData.append("expireDate", expirationDate); // ✅ استخدم الاسم الصحيح
+      }
+
+      newImages.forEach((img) => {
+        if (img.file) formData.append("images", img.file);
+>>>>>>> f29e292195c271172399771d7d8d5339619f0094
       });
 
       setShowThankYou(true); // ✅ عرض نافذة الشكر
@@ -128,6 +178,7 @@ return (
       {mode === "add" ? "Add New Donation" : "Edit Donation"}
     </h2>
 
+<<<<<<< HEAD
     <form onSubmit={handleSubmit}>
       <div className="mb-3">
         <label className="form-label">Title</label>
@@ -139,6 +190,21 @@ return (
           required
         />
       </div>
+=======
+                  {kind === "food" && (
+                    <div className="mb-3">
+                      <label className="form-label">Expiration Date</label>
+                      <input
+                        type="date"
+                        className="form-control"
+                        value={expirationDate || ""}
+                        onChange={(e) => setExpirationDate(e.target.value)}
+                        min={new Date().toISOString().split("T")[0]}
+                        required
+                      />
+                    </div>
+                  )}
+>>>>>>> f29e292195c271172399771d7d8d5339619f0094
 
       <div className="mb-3">
         <label className="form-label">Kind</label>

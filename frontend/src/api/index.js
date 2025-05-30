@@ -14,6 +14,10 @@ export const fetchConversations = () => api.get("/conversations");
 export const fetchMessages = (conversationId) =>
   api.get(`/messages/conversation/${conversationId}`);
 
+export const deleteMessage = async (id) => {
+  const res = await api.delete(`/messages/${id}`);
+  return res.data;
+};
 // ✅ إرسال رسالة نصية
 export const sendMessage = async (conversationId, content) => {
   return await api.post("/messages", {
@@ -23,8 +27,8 @@ export const sendMessage = async (conversationId, content) => {
 };
 
 // ✅ جلب أو إنشاء محادثة مع مستخدم معين (مثل المتبرع)
-export const getOrCreateConversation = async (userId) => {
-  const res = await api.get(`/conversations/${userId}`);
+export const getOrCreateConversation = async (userId, donationId) => {
+  const res = await api.get(`/conversations/${userId}/${donationId}`);
   return res.data; // يجب أن يحتوي على _id
 };
 
